@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YDUS Çalışma Listesi</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #f0f4f8;
+  color: #1a202c;
+  min-height: 100vh;
+  padding: 24px 16px 48px;
+}
+
+header { text-align: center; margin-bottom: 28px; }
+header h1 { font-size: 1.7rem; font-weight: 700; color: #1a365d; }
+header p  { margin-top: 5px; color: #718096; font-size: 0.85rem; }
+
+.overall-bar {
+  background: white; border-radius: 12px; padding: 14px 20px;
+  margin: 0 auto 20px; max-width: 860px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.07);
+  display: flex; align-items: center; gap: 14px;
+}
+.overall-bar .lbl { font-size: .82rem; font-weight: 700; color: #4a5568; white-space: nowrap; min-width: 140px; }
+.bar-wrap { flex: 1; background: #e2e8f0; border-radius: 99px; height: 10px; overflow: hidden; }
+.bar-fill  { height: 100%; border-radius: 99px; transition: width .4s; background: linear-gradient(90deg,#3182ce,#63b3ed); }
+.pct { font-size: .82rem; font-weight: 700; color: #3182ce; min-width: 36px; text-align: right; }
+
+.controls {
+  display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-bottom: 20px;
+}
+.controls button {
+  padding: 6px 14px; border-radius: 7px; border: 1px solid #cbd5e0;
+  background: white; font-size: .78rem; font-weight: 600; color: #4a5568;
+  cursor: pointer; transition: all .15s;
+}
+.controls button:hover { background: #edf2f7; border-color: #a0aec0; }
+.controls button.danger:hover { background: #fff5f5; border-color: #fc8181; color: #c53030; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 16px; max-width: 860px; margin: 0 auto;
+}
+
+.card {
+  background: white; border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  overflow: hidden; border: 2px solid transparent;
+  transition: box-shadow .2s;
+}
+.card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+.card.all-done { border-color: #48bb78; }
+
+.card-header {
+  padding: 13px 16px 11px;
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; user-select: none; border-bottom: 1px solid #f0f4f8;
+}
+.card-header:hover { background: #f7fafc; }
+.card.all-done .card-header { background: linear-gradient(135deg,#f0fff4,#c6f6d5); }
+
+.card-title {
+  display: flex; align-items: center; gap: 9px;
+  font-size: .93rem; font-weight: 700; color: #2d3748;
+}
+.icon {
+  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
+}
+
+.card-meta { display: flex; align-items: center; gap: 10px; }
+.mini-bar  { width: 58px; height: 6px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+.mini-fill { height: 100%; border-radius: 99px; transition: width .3s; }
+.mini-pct  { font-size: .72rem; font-weight: 700; color: #718096; min-width: 28px; }
+.chevron   { color: #a0aec0; font-size: .65rem; transition: transform .2s; }
+.card.collapsed .chevron { transform: rotate(-90deg); }
+
+.card-body { padding: 8px 16px 12px; }
+.card.collapsed .card-body { display: none; }
+
+.step {
+  display: flex; align-items: center; gap: 9px;
+  padding: 6px 0; border-bottom: 1px solid #f7fafc;
+}
+.step:last-child { border-bottom: none; }
+.step input[type="checkbox"] {
+  width: 16px; height: 16px; accent-color: #3182ce;
+  cursor: pointer; flex-shrink: 0;
+}
+.step-num   { font-size: .68rem; font-weight: 700; color: #cbd5e0; min-width: 14px; }
+.step-label { font-size: .83rem; color: #4a5568; cursor: pointer; flex: 1; }
+.step.done .step-label { text-decoration: line-through; color: #a0aec0; }
+
+/* Step colours by category */
+.step[data-cat="1"] .step-label { color: #2b6cb0; }
+.step[data-cat="2"] .step-label { color: #285e61; }
+.step[data-cat="3"] .step-label { color: #744210; }
+.step[data-cat="4"] .step-label { color: #744210; }
+.step[data-cat="5"] .step-label { color: #553c9a; }
+.step[data-cat="6"] .step-label { color: #553c9a; }
+.step.done .step-label { color: #a0aec0 !important; }
+
+/* Colour themes */
+.c0  .icon{background:#ebf8ff} .c0  .mini-fill{background:#3182ce}
+.c1  .icon{background:#f0fff4} .c1  .mini-fill{background:#38a169}
+.c2  .icon{background:#fff5f5} .c2  .mini-fill{background:#e53e3e}
+.c3  .icon{background:#fffff0} .c3  .mini-fill{background:#d69e2e}
+.c4  .icon{background:#faf5ff} .c4  .mini-fill{background:#805ad5}
+.c5  .icon{background:#fffaf0} .c5  .mini-fill{background:#dd6b20}
+.c6  .icon{background:#f0f4ff} .c6  .mini-fill{background:#4c51bf}
+.c7  .icon{background:#fff0f6} .c7  .mini-fill{background:#d53f8c}
+.c8  .icon{background:#e6fffa} .c8  .mini-fill{background:#2c7a7b}
+.c9  .icon{background:#fffbeb} .c9  .mini-fill{background:#b7791f}
+.c10 .icon{background:#fef2f2} .c10 .mini-fill{background:#dc2626}
+.c11 .icon{background:#f0fdf4} .c11 .mini-fill{background:#16a34a}
+.c12 .icon{background:#f5f3ff} .c12 .mini-fill{background:#7c3aed}
+.c13 .icon{background:#fff7ed} .c13 .mini-fill{background:#c2410c}
+.c14 .icon{background:#f0f9ff} .c14 .mini-fill{background:#0369a1}
+
+@media(max-width:500px){ .grid{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🩺 YDUS Çalışma Listesi</h1>
+  <p>Her yan dal için 6 adım</p>
+</header>
+
+<div class="overall-bar">
+  <div class="lbl">📊 Genel İlerleme</div>
+  <div class="bar-wrap"><div class="bar-fill" id="overall-fill" style="width:0%"></div></div>
+  <div class="pct" id="overall-pct">0%</div>
+</div>
+
+<div class="controls">
+  <button onclick="expandAll()">↓ Tümünü Aç</button>
+  <button onclick="collapseAll()">↑ Tümünü Kapat</button>
+  <button class="danger" onclick="resetAll()">🗑 Sıfırla</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const STEPS = [
+  { label: "Ders dinle",                  cat: 1 },
+  { label: "Sonraki seans boyama",        cat: 2 },
+  { label: "Bölüm bitince okuma",         cat: 3 },
+  { label: "Bölüm bitince çıkmış soru",   cat: 4 },
+  { label: "Kitap bitince okuma",         cat: 5 },
+  { label: "Kitap bitince vaka soruları", cat: 6 },
+];
+
+const SUBJECTS = [
+  { name: "Kardiyoloji",           icon: "❤️",  kitap: "Kitap 1" },
+  { name: "Göğüs Hastalıkları",    icon: "🫁",  kitap: "Kitap 1" },
+  { name: "Hematoloji",            icon: "🩸",  kitap: "Kitap 1" },
+  { name: "Nefroloji",             icon: "🫘",  kitap: "Kitap 1" },
+  { name: "Gastroenteroloji",      icon: "🔵",  kitap: "Kitap 1" },
+  { name: "Hepatoloji",            icon: "🟤",  kitap: "Kitap 1" },
+  { name: "Tıbbi Onkoloji",        icon: "🔬",  kitap: "Kitap 2" },
+  { name: "Endokrinoloji",         icon: "⚗️",  kitap: "Kitap 2" },
+  { name: "Temel İmmünoloji",      icon: "🛡️",  kitap: "Kitap 2" },
+  { name: "Klinik İmmünoloji",     icon: "🧬",  kitap: "Kitap 2" },
+  { name: "Alerji",                icon: "🌿",  kitap: "Kitap 2" },
+  { name: "Enfeksiyon Hastalıkları", icon: "🦠", kitap: "Kitap 2" },
+  { name: "Romatoloji",            icon: "🦴",  kitap: "Kitap 2" },
+  { name: "Geriatri",              icon: "👴",  kitap: "Kitap 2" },
+  { name: "Yoğun Bakım",           icon: "🏥",  kitap: "Kitap 2" },
+];
+
+function key(si, stepIdx) { return `ydus_${si}_${stepIdx}`; }
+function getVal(si, stepIdx) { return localStorage.getItem(key(si, stepIdx)) === '1'; }
+function setVal(si, stepIdx, v) { localStorage.setItem(key(si, stepIdx), v ? '1' : '0'); }
+
+function buildGrid() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  SUBJECTS.forEach((subj, si) => {
+    const col = `c${si}`;
+    const done = STEPS.filter((_, st) => getVal(si, st)).length;
+    const pct  = Math.round(done / STEPS.length * 100);
+
+    const card = document.createElement('div');
+    card.className = `card ${col}`;
+    card.id = `card-${si}`;
+
+    card.innerHTML = `
+      <div class="card-header" onclick="toggleCard(${si})">
+        <div class="card-title">
+          <span class="icon">${subj.icon}</span>
+          ${subj.name}
+          <span style="font-size:.65rem;font-weight:500;color:#a0aec0;margin-left:2px">${subj.kitap}</span>
+        </div>
+        <div class="card-meta">
+          <div class="mini-bar"><div class="mini-fill" id="fill-${si}" style="width:${pct}%"></div></div>
+          <span class="mini-pct" id="pct-${si}">${pct}%</span>
+          <span class="chevron">▼</span>
+        </div>
+      </div>
+      <div class="card-body">
+        ${STEPS.map((step, stepIdx) => {
+          const checked = getVal(si, stepIdx);
+          return `
+            <div class="step${checked ? ' done' : ''}" data-cat="${step.cat}" id="row-${si}-${stepIdx}">
+              <input type="checkbox" id="cb-${si}-${stepIdx}" ${checked ? 'checked' : ''}
+                onchange="onCheck(${si},${stepIdx},this)">
+              <span class="step-num">${stepIdx + 1}</span>
+              <label class="step-label" for="cb-${si}-${stepIdx}">${step.label}</label>
+            </div>`;
+        }).join('')}
+      </div>`;
+
+    if (done === STEPS.length) card.classList.add('all-done');
+    grid.appendChild(card);
+  });
+  refreshOverall();
+}
+
+function refreshCard(si) {
+  const done = STEPS.filter((_, st) => getVal(si, st)).length;
+  const pct  = Math.round(done / STEPS.length * 100);
+  document.getElementById(`fill-${si}`).style.width = pct + '%';
+  document.getElementById(`pct-${si}`).textContent  = pct + '%';
+  const card = document.getElementById(`card-${si}`);
+  if (done === STEPS.length) card.classList.add('all-done');
+  else card.classList.remove('all-done');
+}
+
+function refreshOverall() {
+  let done = 0, total = SUBJECTS.length * STEPS.length;
+  SUBJECTS.forEach((_, si) => STEPS.forEach((_, st) => { if (getVal(si, st)) done++; }));
+  const pct = Math.round(done / total * 100);
+  document.getElementById('overall-fill').style.width = pct + '%';
+  document.getElementById('overall-pct').textContent  = pct + '%';
+}
+
+function onCheck(si, stepIdx, cb) {
+  setVal(si, stepIdx, cb.checked);
+  const row = document.getElementById(`row-${si}-${stepIdx}`);
+  cb.checked ? row.classList.add('done') : row.classList.remove('done');
+  refreshCard(si);
+  refreshOverall();
+}
+
+function toggleCard(si) { document.getElementById(`card-${si}`).classList.toggle('collapsed'); }
+function expandAll()    { document.querySelectorAll('.card').forEach(c => c.classList.remove('collapsed')); }
+function collapseAll()  { document.querySelectorAll('.card').forEach(c => c.classList.add('collapsed')); }
+
+function resetAll() {
+  if (!confirm('Tüm ilerleme sıfırlanacak. Emin misin?')) return;
+  SUBJECTS.forEach((_, si) => STEPS.forEach((_, st) => localStorage.removeItem(key(si, st))));
+  buildGrid();
+}
+
+buildGrid();
+</script>
+</body>
+</html>
