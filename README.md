@@ -17,7 +17,10 @@ veriyi yalnızca açtığın cihazın tarayıcısında (localStorage) saklar.
 - **Kronometre**: açık uçlu çalışma veya mola ölçümü.
 - **Ders seçimi**: çalışma süresi seçtiğin derse yazılır, molalar derse yazılmaz.
   Hazır liste, çalışma listesindeki on beş başlığa ek olarak Genel, Tez ve Araştırma
-  içerir; ayarlardan yeniden adlandırılır, gizlenir veya silinir. Hazır listeye sonradan
+  içerir; ayarlardan yeniden adlandırılır, gizlenir veya silinir. Sıralama, satırın
+  solundaki tutamaktan sürüklenerek değiştirilir ve zamanlayıcı ekranındaki ders şeridine
+  aynen yansır. "Son 30 güne göre sırala" düğmesi listeyi son bir ayın çalışma süresine
+  göre yeniden dizer. Hazır listeye sonradan
   eklenen başlıklar kurulu cihazlara bir kez taşınır, kullanıcı silerse geri gelmez.
 - **Bugün**: toplam çalışma, toplam mola, seans sayısı, odak oranı ve günlük hedef çubuğu.
 - **Elle seans**: zamanlayıcı çalıştırılmadan geçen süre tarih, saat ve dakika girilerek

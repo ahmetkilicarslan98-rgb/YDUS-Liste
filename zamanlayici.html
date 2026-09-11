@@ -244,9 +244,23 @@ input[type="date"],input[type="time"]{
 .sess-row.brk .nm{color:var(--muted)}
 .sess-row .mn{font-size:.62rem;font-weight:700;color:var(--sand);border:1px solid var(--sand);
   border-radius:5px;padding:1px 5px;margin-left:6px;white-space:nowrap}
-.sbj-edit{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}
-.sbj-edit .nm{flex:1;font-size:.85rem;font-weight:600}
+.sbj-edit{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);
+  background:var(--surface);user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.sbj-edit .nm{flex:1;font-size:.85rem;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sbj-edit.off .nm{color:var(--muted);text-decoration:line-through}
+.sbj-edit .grip{
+  font-size:1.05rem;line-height:1;color:var(--muted);padding:6px 4px;margin-left:-4px;
+  cursor:grab;touch-action:none;flex-shrink:0;
+}
+.sbj-edit.dragging{
+  position:relative;z-index:25;border-radius:12px;border-bottom-color:transparent;
+  box-shadow:0 6px 20px rgba(60,50,30,.22);background:var(--surface-2);
+  padding-left:8px;padding-right:8px;cursor:grabbing;
+}
+html[data-theme="dark"] .sbj-edit.dragging{box-shadow:0 6px 20px rgba(0,0,0,.45)}
+.sbj-edit.shift{transition:transform .16s ease}
+.sbj-edit.dragging .grip{cursor:grabbing;color:var(--green)}
+#subjectEditor{touch-action:pan-y}
 .mini{padding:6px 10px;font-size:.74rem;border-radius:9px}
 .add-row{display:flex;gap:8px;margin-top:12px}
 @media (max-width:360px){
@@ -456,7 +470,10 @@ input[type="date"],input[type="time"]{
         <input type="text" id="newSubject" placeholder="Yeni ders adı">
         <button class="btn mini" id="addSubject">Ekle</button>
       </div>
-      <div class="note">Gizlenen dersler seçim listesinden kalkar, geçmiş kayıtları silinmez.</div>
+      <div style="margin-top:10px"><button class="btn mini" id="sortByUse">Son 30 güne göre sırala</button></div>
+      <div class="note">Soldaki tutamaktan basılı tutup sürükleyerek sıralamayı değiştirebilirsin;
+        buradaki sıra zamanlayıcı ekranındaki ders şeridine birebir yansır.
+        Gizlenen dersler seçim listesinden kalkar, geçmiş kayıtları silinmez.</div>
     </div>
 
     <div class="card">
@@ -1272,6 +1289,7 @@ function renderSettings(){
   $('subjectEditor').innerHTML = S.subjects.map(s => {
     const used = S.sessions.some(x => x.s === s.id);
     return '<div class="sbj-edit' + (s.hidden ? ' off' : '') + '" data-id="' + s.id + '">' +
+      '<span class="grip" aria-hidden="true">⠿</span>' +
       '<span class="nm">' + s.icon + ' ' + s.name + '</span>' +
       '<button class="btn mini" data-act="rename">✎</button>' +
       '<button class="btn mini" data-act="hide">' + (s.hidden ? '👁' : '🚫') + '</button>' +
@@ -1288,7 +1306,7 @@ function renderSettings(){
 }
 
 $('subjectEditor').addEventListener('click', ev => {
-  const btn = ev.target.closest('button'); if (!btn) return;
+  const btn = ev.target.closest('button'); if (!btn || !btn.dataset.act) return;
   const id = btn.closest('.sbj-edit').dataset.id;
   const s = S.subjects.find(x => x.id === id); if (!s) return;
   const act = btn.dataset.act;
@@ -1305,6 +1323,112 @@ $('subjectEditor').addEventListener('click', ev => {
   }
   save(true); renderSettings(); renderSubjects();
 });
+
+/* ---------- ders sırasını sürükleyerek değiştirme ---------- */
+let drag = null;
+
+function dragUpdate(){
+  const d = drag; if (!d) return;
+  const pageY = d.clientY + window.scrollY;
+  const dy = pageY - d.startY;
+  d.row.style.transform = 'translateY(' + dy + 'px)';
+  const center = d.rects[d.from].mid + dy;
+  let to = d.from;
+  if (dy < 0){
+    for (let i = d.from-1; i >= 0; i--){ if (center < d.rects[i].mid) to = i; else break; }
+  } else {
+    for (let i = d.from+1; i < d.rects.length; i++){ if (center > d.rects[i].mid) to = i; else break; }
+  }
+  if (to !== d.to){
+    d.to = to;
+    d.rows.forEach((r,i) => {
+      if (r === d.row) return;
+      let t = 0;
+      if (to > d.from && i > d.from && i <= to) t = -d.h;
+      else if (to < d.from && i >= to && i < d.from) t = d.h;
+      r.style.transform = t ? 'translateY(' + t + 'px)' : '';
+    });
+  }
+}
+
+function dragTick(){
+  const d = drag; if (!d) return;
+  const margin = 90, step = 9;
+  let sc = 0;
+  if (d.clientY < margin) sc = -step;
+  else if (d.clientY > window.innerHeight - margin) sc = step;
+  if (sc){
+    const before = window.scrollY;
+    window.scrollBy(0, sc);
+    if (window.scrollY !== before) dragUpdate();
+  }
+  d.raf = requestAnimationFrame(dragTick);
+}
+
+function dragEnd(commit){
+  const d = drag; if (!d) return;
+  cancelAnimationFrame(d.raf);
+  window.removeEventListener('pointermove', dragMove);
+  window.removeEventListener('pointerup', dragUp);
+  window.removeEventListener('pointercancel', dragCancel);
+  d.row.classList.remove('dragging');
+  d.rows.forEach(r => { r.classList.remove('shift'); r.style.transform = ''; });
+  const from = d.from, to = d.to;
+  drag = null;
+  if (commit && to !== from){
+    const [item] = S.subjects.splice(from, 1);
+    S.subjects.splice(to, 0, item);
+    save(true);
+    renderSettings(); renderSubjects();
+    toast('"' + item.name + '" listede ' + (to+1) + '. sıraya taşındı.', 3500);
+  } else {
+    renderSettings();
+  }
+}
+function dragMove(ev){ if (!drag) return; ev.preventDefault(); drag.clientY = ev.clientY; dragUpdate(); }
+function dragUp(){ dragEnd(true); }
+function dragCancel(){ dragEnd(false); }
+
+$('subjectEditor').addEventListener('pointerdown', ev => {
+  const grip = ev.target.closest('.grip'); if (!grip) return;
+  const row = grip.closest('.sbj-edit'); if (!row) return;
+  ev.preventDefault();
+  const rows = Array.from($('subjectEditor').querySelectorAll('.sbj-edit'));
+  const from = rows.indexOf(row);
+  if (from < 0) return;
+  const sy = window.scrollY;
+  const rects = rows.map(r => {
+    const b = r.getBoundingClientRect();
+    return { top: b.top + sy, h: b.height, mid: b.top + sy + b.height/2 };
+  });
+  drag = { row, rows, rects, from, to: from, h: rects[from].h,
+           startY: ev.clientY + sy, clientY: ev.clientY, raf: 0 };
+  try { grip.setPointerCapture(ev.pointerId); } catch(e){}
+  row.classList.add('dragging');
+  rows.forEach(r => { if (r !== row) r.classList.add('shift'); });
+  if (S.settings.vibrate && navigator.vibrate){ try { navigator.vibrate(12); } catch(e){} }
+  window.addEventListener('pointermove', dragMove, { passive:false });
+  window.addEventListener('pointerup', dragUp);
+  window.addEventListener('pointercancel', dragCancel);
+  drag.raf = requestAnimationFrame(dragTick);
+});
+
+/* ---------- son 30 günün kullanımına göre sırala ---------- */
+$('sortByUse').onclick = () => {
+  const since = Date.now() - 30*DAY;
+  const use = {};
+  S.sessions.forEach(x => {
+    if (x.k !== 'f' || !x.s) return;
+    if (sessionStart(x) < since) return;
+    use[x.s] = (use[x.s]||0) + x.d;
+  });
+  const total = Object.values(use).reduce((a,b) => a+b, 0);
+  if (!total){ toast('Son 30 günde ders kaydı yok, sıralama değişmedi.', 4000); return; }
+  S.subjects.sort((a,b) => (use[b.id]||0) - (use[a.id]||0));
+  save(true); renderSettings(); renderSubjects();
+  const top = S.subjects[0];
+  toast('Son 30 güne göre sıralandı. En üstte ' + top.name + ' (' + fmtHM(use[top.id]||0) + ').', 5000);
+};
 
 $('addSubject').onclick = () => {
   const v = $('newSubject').value.trim(); if (!v) return;
