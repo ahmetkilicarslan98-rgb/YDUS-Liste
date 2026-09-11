@@ -6,9 +6,9 @@ veriyi yalnızca açtığın cihazın tarayıcısında (localStorage) saklar.
 | Dosya | Ne işe yarar |
 |---|---|
 | `calisma_listesi.html` | Ders/kitap bazlı çalışma adımı takip listesi |
-| `zamanlayici.html` | Pomodoro + kronometre, gün içi süre takibi ve istatistikler |
+| `zamanlayici.html` | **Çalışma Zamanı**: Pomodoro + kronometre, gün içi süre takibi ve istatistikler |
 
-## Zamanlayıcı
+## Çalışma Zamanı
 
 - **Pomodoro**: odak, kısa mola ve uzun mola süreleri hem zamanlayıcı ekranındaki
   +/- düğmelerinden hem de Ayarlar sekmesinden değiştirilir. 25/5, 50/10 ve 90/20 hazır
@@ -29,7 +29,7 @@ veriyi yalnızca açtığın cihazın tarayıcısında (localStorage) saklar.
 
 ## Telefona kurmak (PWA)
 
-Zamanlayıcı bir Progressive Web App olarak paketlendi (`manifest.webmanifest` + `sw.js`).
+Çalışma Zamanı bir Progressive Web App olarak paketlendi (`manifest.webmanifest` + `sw.js`).
 Ana ekrana kurulabilmesi ve çevrimdışı açılabilmesi için dosyaların `https://` üzerinden
 sunulması gerekir; `file://` ile açıldığında uygulama çalışır ama kurulum ve çevrimdışı
 önbellek devreye girmez.
@@ -40,6 +40,10 @@ En kolay yol GitHub Pages:
 2. Birkaç dakika sonra `https://<kullanici-adi>.github.io/YDUS-Liste/zamanlayici.html` adresini telefonda aç.
 3. **Android / Chrome**: menü → "Uygulamayı yükle" veya "Ana ekrana ekle".
    **iPhone / Safari**: paylaş simgesi → "Ana Ekrana Ekle".
+
+Ana ekrandaki uygulama adı "Çalışma Zamanı" olarak gelir. iOS uzun adları kısaltabilir;
+"Ana Ekrana Ekle" ekranında ad alanına dokunup istediğin şekilde kısaltabilirsin.
+Dosya adı `zamanlayici.html` olarak kaldı, böylece mevcut kısayollar ve adres bozulmuyor.
 
 Ana ekran ikonu yeşil zemin üzerinde bej bir kum saatidir; kaynak çizim `icon.svg`
 dosyasında, PNG boyutları ondan üretilmiştir (iOS için 180/167/152, Android için 192/512

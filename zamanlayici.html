@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#2F6B4F">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="YDUS Saat">
+<meta name="apple-mobile-web-app-title" content="Çalışma Zamanı">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="apple-touch-icon" sizes="167x167" href="apple-touch-icon-167.png">
@@ -14,7 +14,7 @@
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
-<title>YDUS Çalışma Zamanlayıcı</title>
+<title>Çalışma Zamanı</title>
 <style>
 :root{
   --bg:#F3EEE2; --bg-soft:#EAE3D2; --surface:#FFFCF5; --surface-2:#F7F2E6;
@@ -47,7 +47,7 @@ header{
   padding:calc(10px + env(safe-area-inset-top)) 0 10px;
 }
 .head-in{display:flex;align-items:center;gap:10px;justify-content:space-between}
-.brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1rem;color:var(--green)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1rem;color:var(--green);white-space:nowrap}
 .brand .mark{width:23px;height:23px;flex-shrink:0;fill:var(--green)}
 .brand .mark .sand{fill:var(--sand)}
 .head-right{display:flex;align-items:center;gap:8px}
@@ -222,7 +222,11 @@ html[data-theme="dark"] #toast{background:#2C3E34;color:var(--text)}
 .sbj-edit.off .nm{color:var(--muted);text-decoration:line-through}
 .mini{padding:6px 10px;font-size:.74rem;border-radius:9px}
 .add-row{display:flex;gap:8px;margin-top:12px}
-@media (max-width:360px){ .ring-wrap{width:216px;height:216px} .clock{font-size:2.7rem} }
+@media (max-width:360px){
+  .ring-wrap{width:216px;height:216px} .clock{font-size:2.7rem}
+  .brand{font-size:.94rem;gap:6px} .brand .mark{width:21px;height:21px}
+  .streak .u{display:none} .streak{padding:5px 9px}
+}
 </style>
 </head>
 <body>
@@ -236,9 +240,9 @@ html[data-theme="dark"] #toast{background:#2C3E34;color:var(--text)}
         <path class="sand" d="M 200 176 L 312 176 C 310 216 280 240 262 252 L 250 252 C 232 240 202 216 200 176 Z"/>
         <rect class="sand" x="249" y="262" width="14" height="52" rx="7"/>
         <path class="sand" d="M 256 300 C 280 316 306 334 312 340 L 200 340 C 206 334 232 316 256 300 Z"/>
-      </svg> YDUS Saat</div>
+      </svg> Çalışma Zamanı</div>
     <div class="head-right">
-      <span class="streak" id="streakBadge" title="Üst üste çalışılan gün">🔥 <span id="streakVal">0</span> gün</span>
+      <span class="streak" id="streakBadge" title="Üst üste çalışılan gün">🔥 <span id="streakVal">0</span><span class="u"> gün</span></span>
       <button class="icon-btn" id="themeBtn" title="Tema değiştir">🌙</button>
     </div>
   </div>
@@ -446,7 +450,7 @@ html[data-theme="dark"] #toast{background:#2C3E34;color:var(--text)}
 
 <script>
 /* =========================================================
-   YDUS Çalışma Zamanlayıcı — veri katmanı
+   Çalışma Zamanı — veri katmanı
    ========================================================= */
 const LS_KEY = 'ydusTimer.v1';
 const DEFAULT_SUBJECTS = [
@@ -757,7 +761,7 @@ function paintTimer(){
   mb.classList.toggle('paused', t.running);
   $('skipBtn').textContent = t.mode === 'chrono' ? 'Bitir ve kaydet' : 'Atla ▸';
   $('skipBtn').style.display = (t.mode === 'chrono' && el < 10000) ? 'none' : '';
-  const title = t.running ? (isBreakNow() ? '☕ ' : '⏳ ') + txt + ' · YDUS Saat' : 'YDUS Çalışma Zamanlayıcı';
+  const title = t.running ? (isBreakNow() ? '☕ ' : '⏳ ') + txt + ' · Çalışma Zamanı' : 'Çalışma Zamanı';
   if (document.title !== title) document.title = title;
 }
 
@@ -1139,7 +1143,7 @@ $('exportBtn').onclick = () => {
   const blob = new Blob([JSON.stringify(S, null, 2)], { type:'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'ydus-calisma-yedek-' + dayKey(Date.now()) + '.json';
+  a.download = 'calisma-zamani-yedek-' + dayKey(Date.now()) + '.json';
   document.body.appendChild(a); a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   markBackup();

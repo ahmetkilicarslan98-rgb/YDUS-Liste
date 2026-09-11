@@ -1,6 +1,6 @@
 {
-  "name": "YDUS Çalışma Zamanlayıcı",
-  "short_name": "YDUS Saat",
+  "name": "Çalışma Zamanı",
+  "short_name": "Çalışma Zamanı",
   "description": "Pomodoro ve kronometre ile ders çalışma süresi takibi, ders bazlı istatistikler.",
   "start_url": "./zamanlayici.html",
   "scope": "./",

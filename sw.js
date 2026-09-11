@@ -1,4 +1,4 @@
-const CACHE = 'ydus-timer-v2';
+const CACHE = 'ydus-timer-v3';
 const ASSETS = [
   './zamanlayici.html',
   './manifest.webmanifest',
