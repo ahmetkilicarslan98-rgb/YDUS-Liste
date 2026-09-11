@@ -22,7 +22,10 @@ veriyi yalnızca açtığın cihazın tarayıcısında (localStorage) saklar.
   ders dağılımı, yıllık ısı haritası, en verimli gün, hedefi tutturulan gün sayısı.
 - **Seri (streak)**: en az 10 dakika çalışılan ardışık günler. Gün bitmeden seri bozulmaz.
 - **Uyarılar**: zil sesi, titreşim, bildirim ve sayaç çalışırken ekranı açık tutma (Wake Lock).
-- **Veri**: JSON olarak yedek alma ve geri yükleme.
+- **Veri**: JSON olarak yedek alma, panoya kopyalama ve geri yükleme. Kayıt birikmişken
+  30 gün yedek alınmadıysa zamanlayıcı ekranında uyarı şeridi çıkar.
+- **Arka plan**: sayaç zaman damgası üzerinden yürür. Uygulama kapalıyken dolan faz,
+  açılışta gerçek bitiş saatiyle kaydedilir ve ekranda bildirilir.
 
 ## Telefona kurmak (PWA)
 
@@ -49,6 +52,13 @@ Kurulumdan sonra uygulama tam ekran açılır ve internet olmadan da çalışır
 
 - Veriler cihazda tutulur, cihazlar arasında eşitlenmez. Telefon değiştirirken
   Ayarlar → Veri → **Yedek al** ile JSON indir, yeni cihazda **Yedekten yükle**.
-- Tarayıcı verilerini silmek kayıtları da siler.
+- Verinin silindiği durumlar: Ayarlar → Safari → Geçmişi ve Web Sitesi Verilerini Sil,
+  Safari → Gelişmiş → Web Sitesi Verileri'nden siteyi kaldırmak, telefonu sıfırlamak,
+  ana ekrandaki kısayolu silmek. Web sitesi verisi iCloud yedeğine girmez.
+- Safari sekmesi olarak kullanılırsa WebKit, etkileşim görmeyen sitenin verisini yedi günlük
+  Safari kullanımı sonunda siler. Ana ekrana eklenmiş uygulamalar bu kuraldan muaftır,
+  bu yüzden her zaman ana ekran kısayolundan girmek gerekir.
+- Telefon kilitliyken tarayıcı sayacı askıya alınabilir; uyarı o anda değil uygulama
+  açıldığında gelir. Süre yine doğru hesaplanır.
 - Bildirim izni ve ekranı açık tutma özelliği tarayıcıya göre değişir; iOS'ta bildirim için
   uygulamanın ana ekrana eklenmiş olması gerekir.

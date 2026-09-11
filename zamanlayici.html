@@ -199,6 +199,24 @@ nav.tabs button.on{color:var(--green)}
 .view{display:none}
 .view.on{display:block}
 .note{font-size:.72rem;color:var(--muted);line-height:1.5;margin-top:10px}
+#toast{
+  position:fixed;left:50%;transform:translate(-50%,140%);
+  bottom:calc(78px + env(safe-area-inset-bottom));z-index:40;
+  max-width:min(460px,calc(100% - 32px));padding:12px 16px;border-radius:13px;
+  background:var(--green-ink);color:#F6F2E7;font-size:.82rem;font-weight:600;line-height:1.4;
+  box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;transition:transform .28s,opacity .28s;pointer-events:none;
+}
+html[data-theme="dark"] #toast{background:#2C3E34;color:var(--text)}
+#toast.on{transform:translate(-50%,0);opacity:1}
+.banner{
+  background:var(--sand-soft);border:1px solid var(--sand);border-radius:var(--radius);
+  padding:13px 15px;margin-top:14px;display:flex;gap:11px;align-items:flex-start;
+}
+.banner .ic{font-size:1.1rem;line-height:1.2}
+.banner .bd{flex:1}
+.banner .tt{font-size:.84rem;font-weight:800;color:var(--text)}
+.banner .tx{font-size:.75rem;color:var(--muted);margin-top:3px;line-height:1.45}
+.banner .ax{display:flex;gap:8px;margin-top:10px}
 .sbj-edit{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}
 .sbj-edit .nm{flex:1;font-size:.85rem;font-weight:600}
 .sbj-edit.off .nm{color:var(--muted);text-decoration:line-through}
@@ -229,6 +247,18 @@ nav.tabs button.on{color:var(--green)}
 <!-- ============ ZAMANLAYICI ============ -->
 <section class="view on" id="view-timer">
   <div class="wrap">
+
+    <div class="banner" id="backupBanner" hidden>
+      <span class="ic">💾</span>
+      <div class="bd">
+        <div class="tt">Yedek zamanı geldi</div>
+        <div class="tx" id="bannerTxt"></div>
+        <div class="ax">
+          <button class="btn mini" id="bannerBackup">Yedek al</button>
+          <button class="btn mini ghost" id="bannerLater">Sonra</button>
+        </div>
+      </div>
+    </div>
 
     <div class="card timer-card">
       <div class="seg" id="modeSeg">
@@ -375,6 +405,9 @@ nav.tabs button.on{color:var(--green)}
         <button class="btn mini" id="notifBtn">İzin ver</button></div>
       <div class="row"><div><div class="lbl">Ekranı açık tut</div><div class="sub">Sayaç çalışırken ekran kapanmaz</div></div>
         <label class="switch"><input type="checkbox" id="setWake"><span class="slider"></span></label></div>
+      <div class="note">Telefon kilitlendiğinde tarayıcı sayacı askıya alabilir, bu durumda uyarı süre bitiminde
+        değil uygulamayı açtığında gelir. Süre yine doğru hesaplanır ve kaydedilir. Kilitliyken de çalan gerçek
+        bir alarm ancak native uygulamayla mümkün.</div>
     </div>
 
     <div class="card">
@@ -389,7 +422,12 @@ nav.tabs button.on{color:var(--green)}
 
     <div class="card">
       <h2>Veri</h2>
-      <div class="row"><div><div class="lbl">Yedek al</div><div class="sub" id="dataInfo">–</div></div><button class="btn mini" id="exportBtn">İndir</button></div>
+      <div class="row"><div><div class="lbl">Yedek al</div><div class="sub" id="dataInfo">–</div></div>
+        <button class="btn mini" id="exportBtn">İndir</button></div>
+      <div class="row"><div><div class="lbl">Panoya kopyala</div><div class="sub">Notlar'a yapıştırmak için</div></div>
+        <button class="btn mini" id="copyBtn">Kopyala</button></div>
+      <div class="row"><div><div class="lbl">Son yedek</div><div class="sub" id="backupAge">–</div></div>
+        <span id="backupDot" style="font-size:1.1rem">•</span></div>
       <div class="row"><div><div class="lbl">Yedekten yükle</div><div class="sub">JSON dosyası seç</div></div>
         <button class="btn mini" id="importBtn">Yükle</button><input type="file" id="importFile" accept="application/json,.json" style="display:none"></div>
       <div class="row"><div><div class="lbl">Tüm kayıtları sil</div><div class="sub">Geri alınamaz</div></div><button class="btn mini danger" id="wipeBtn">Sil</button></div>
@@ -397,6 +435,8 @@ nav.tabs button.on{color:var(--green)}
     </div>
   </div>
 </section>
+
+<div id="toast" role="status" aria-live="polite"></div>
 
 <nav class="tabs">
   <button data-view="timer" class="on"><span class="ic">⏱</span>Zamanlayıcı</button>
@@ -524,12 +564,12 @@ function pauseTimer(){
   releaseWake();
   save(true); render();
 }
-function logSegment(){
+function logSegment(endTs){
   const t = S.timer;
   const sec = Math.round(elapsedMs()/1000);
   if (sec >= 10){
     S.sessions.push({
-      t: Date.now(), d: sec,
+      t: endTs || Date.now(), d: sec,
       k: isBreakNow() ? 'b' : 'f',
       s: isBreakNow() ? null : (S.current || 's0'),
       m: t.mode === 'chrono' ? 'c' : 'p'
@@ -597,12 +637,59 @@ function tick(){
 function reconcile(){
   const t = S.timer;
   if (t.mode === 'pomo' && t.running && elapsedMs() >= phaseMs()){
-    t.accum = phaseMs(); t.segStart = null; t.running = false;
-    logSegment(); advancePhase();
+    const dur = phaseMs();
+    const endTs = t.segStart + (dur - t.accum);   // faz aslında ne zaman doldu
+    const wasBreak = isBreakNow();
+    t.accum = dur; t.segStart = null; t.running = false;
+    logSegment(endTs);
+    advancePhase();
     t.running = false; t.segStart = null; t.accum = 0;
     save(true);
+    const d = new Date(endTs);
+    pendingToast = (wasBreak ? 'Molan ' : 'Odak süren ') + pad(d.getHours()) + ':' + pad(d.getMinutes()) +
+                   ' itibarıyla doldu, süre kaydedildi.';
   }
 }
+
+/* ---------- bilgi balonu ---------- */
+let pendingToast = null, toastTimer = null;
+function toast(msg, ms){
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('on'), ms || 5000);
+}
+function flushToast(){ if (pendingToast){ toast(pendingToast, 7000); pendingToast = null; } }
+
+/* ---------- yedek yaşı ---------- */
+const DAY = 86400000;
+function backupAgeDays(){
+  if (!S.lastBackup) return null;
+  return Math.floor((Date.now() - S.lastBackup)/DAY);
+}
+function backupOverdue(){
+  if (S.sessions.length < 20) return false;
+  const a = backupAgeDays();
+  return a === null || a >= 30;
+}
+function backupText(){
+  const a = backupAgeDays();
+  if (a === null) return 'Hiç yedek alınmadı';
+  if (a === 0) return 'Bugün yedek alındı';
+  if (a === 1) return 'Dün yedek alındı';
+  return a + ' gün önce yedek alındı';
+}
+function markBackup(){ S.lastBackup = Date.now(); save(true); renderSettings(); renderBanner(); }
+
+function renderBanner(){
+  const el = $('backupBanner');
+  el.hidden = !(backupOverdue() && !bannerDismissed);
+  $('bannerTxt').textContent = backupAgeDays() === null
+    ? 'Kayıtların hiç yedeklenmedi. Safari verilerini silmek ya da telefon değiştirmek hepsini götürür.'
+    : 'Son yedeğin ' + backupAgeDays() + ' gün önce alındı. Yeni kayıtlar yedekte yok.';
+}
+let bannerDismissed = false;
 
 /* ---------- uyarılar ---------- */
 function unlockAudio(){
@@ -670,6 +757,8 @@ function paintTimer(){
   mb.classList.toggle('paused', t.running);
   $('skipBtn').textContent = t.mode === 'chrono' ? 'Bitir ve kaydet' : 'Atla ▸';
   $('skipBtn').style.display = (t.mode === 'chrono' && el < 10000) ? 'none' : '';
+  const title = t.running ? (isBreakNow() ? '☕ ' : '⏳ ') + txt + ' · YDUS Saat' : 'YDUS Çalışma Zamanlayıcı';
+  if (document.title !== title) document.title = title;
 }
 
 function renderSubjects(){
@@ -723,7 +812,7 @@ function calcStreak(){
 }
 
 function render(){
-  paintTimer(); renderSubjects(); renderToday(); renderTune();
+  paintTimer(); renderSubjects(); renderToday(); renderTune(); renderBanner();
   $('chronoSeg').style.display = S.timer.mode === 'chrono' ? '' : 'none';
   $('roundInfo').style.opacity = 1;
   document.querySelectorAll('#modeSeg button').forEach(b =>
@@ -987,6 +1076,10 @@ function renderSettings(){
 
   const days = new Set(S.sessions.map(x => dayKey(sessionStart(x)))).size;
   $('dataInfo').textContent = S.sessions.length + ' seans · ' + days + ' gün';
+  $('backupAge').textContent = backupText();
+  const dot = $('backupDot');
+  dot.textContent = backupOverdue() ? '⚠️' : (S.lastBackup ? '✅' : '•');
+  dot.title = backupOverdue() ? 'Yedek alma zamanı geldi' : '';
 }
 
 $('subjectEditor').addEventListener('click', ev => {
@@ -1049,6 +1142,18 @@ $('exportBtn').onclick = () => {
   a.download = 'ydus-calisma-yedek-' + dayKey(Date.now()) + '.json';
   document.body.appendChild(a); a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  markBackup();
+  toast('Yedek dosyası indirildi. Dosyalar uygulamasından iCloud Drive\'a taşırsan telefon değişse de durur.', 7000);
+};
+$('copyBtn').onclick = async () => {
+  const txt = JSON.stringify(S);
+  try {
+    await navigator.clipboard.writeText(txt);
+    markBackup();
+    toast('Kayıtların panoya kopyalandı. Notlar uygulamasına yapıştırıp saklayabilirsin.', 6000);
+  } catch(e){
+    toast('Panoya kopyalanamadı. İndir düğmesini kullan.', 5000);
+  }
 };
 $('importBtn').onclick = () => $('importFile').click();
 $('importFile').onchange = ev => {
@@ -1062,8 +1167,9 @@ $('importFile').onchange = ev => {
       const base = freshState();
       S = { ...base, ...p, settings:{ ...base.settings, ...(p.settings||{}) } };
       if (!S.timer) S.timer = freshTimer('pomo');
+      S.lastBackup = Date.now();
       save(true); applyTheme(); render(); renderStats(); renderSettings();
-      alert('Yedek yüklendi.');
+      toast('Yedek yüklendi: ' + S.sessions.length + ' seans geri geldi.', 6000);
     } catch(e){ alert('Dosya okunamadı.'); }
   };
   fr.readAsText(file);
@@ -1079,6 +1185,9 @@ $('wipeBtn').onclick = () => {
 /* =========================================================
    Olaylar
    ========================================================= */
+$('bannerBackup').onclick = () => $('exportBtn').click();
+$('bannerLater').onclick = () => { bannerDismissed = true; renderBanner(); };
+
 $('mainBtn').onclick = () => { S.timer.running ? pauseTimer() : startTimer(); };
 $('skipBtn').onclick = () => skipPhase();
 $('resetBtn').onclick = () => resetTimer();
@@ -1146,6 +1255,7 @@ document.addEventListener('visibilitychange', () => {
     reconcile();
     if (S.timer.running) requestWake();
     render(); if ($('view-stats').classList.contains('on')) renderStats();
+    flushToast();
   } else { save(true); }
 });
 window.addEventListener('beforeunload', () => save(true));
@@ -1160,6 +1270,7 @@ reconcile();
 render();
 renderStats();
 renderSettings();
+flushToast();
 tickHandle = setInterval(tick, 250);
 </script>
 </body>
