@@ -160,7 +160,7 @@ html[data-theme="dark"] .btn-main{color:#10231A}
 .bar{width:100%;border-radius:4px 4px 0 0;min-height:0;transition:height .3s}
 .bar.f{background:var(--green)}
 .bar.b{background:var(--sand);opacity:.65;border-radius:4px}
-.bar-lb{font-size:.6rem;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.bar-lb{font-size:.6rem;color:var(--muted);font-weight:600;white-space:nowrap;overflow:visible}
 .bar-col.today .bar-lb{color:var(--green);font-weight:800}
 .legend{display:flex;gap:14px;justify-content:center;margin-top:10px;font-size:.7rem;color:var(--muted);font-weight:600}
 .legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}
@@ -217,6 +217,33 @@ html[data-theme="dark"] #toast{background:#2C3E34;color:var(--text)}
 .banner .tt{font-size:.84rem;font-weight:800;color:var(--text)}
 .banner .tx{font-size:.75rem;color:var(--muted);margin-top:3px;line-height:1.45}
 .banner .ax{display:flex;gap:8px;margin-top:10px}
+.modal{position:fixed;inset:0;z-index:50;display:none;align-items:flex-end;justify-content:center;
+  background:rgba(28,24,14,.5);backdrop-filter:blur(2px)}
+.modal.on{display:flex}
+.sheet{
+  background:var(--surface);width:100%;max-width:520px;border-radius:20px 20px 0 0;
+  padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:92vh;overflow-y:auto;
+  box-shadow:0 -8px 30px rgba(0,0,0,.25);
+}
+.sheet h3{font-size:1rem;font-weight:800;margin-bottom:4px}
+.sheet .hint{font-size:.74rem;color:var(--muted);margin-bottom:8px;line-height:1.45}
+.sheet .act{display:flex;gap:9px;margin-top:16px}
+.sheet .act .btn{flex:1;padding:12px}
+.sheet .act .btn.pri{background:var(--green);border-color:var(--green);color:#fff}
+html[data-theme="dark"] .sheet .act .btn.pri{color:#10231A}
+input[type="date"],input[type="time"]{
+  font-family:inherit;font-size:.88rem;color:var(--text);background:var(--surface-2);
+  border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:auto;
+}
+.sess-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.sess-row:last-child{border-bottom:none}
+.sess-row .tm{font-size:.75rem;font-weight:700;color:var(--muted);min-width:88px;font-variant-numeric:tabular-nums}
+.sess-row .nm{flex:1;font-size:.84rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sess-row .dr{font-size:.8rem;font-weight:800;min-width:52px;text-align:right;font-variant-numeric:tabular-nums}
+.sess-row.brk .dr{color:var(--sand)}
+.sess-row.brk .nm{color:var(--muted)}
+.sess-row .mn{font-size:.62rem;font-weight:700;color:var(--sand);border:1px solid var(--sand);
+  border-radius:5px;padding:1px 5px;margin-left:6px;white-space:nowrap}
 .sbj-edit{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}
 .sbj-edit .nm{flex:1;font-size:.85rem;font-weight:600}
 .sbj-edit.off .nm{color:var(--muted);text-decoration:line-through}
@@ -333,6 +360,7 @@ html[data-theme="dark"] #toast{background:#2C3E34;color:var(--text)}
         <div class="goal-bar"><div class="goal-fill" id="goalFill" style="width:0%"></div></div>
       </div>
       <div class="note" id="lastSessions"></div>
+      <div style="margin-top:12px"><button class="btn mini" id="addSessionBtn">+ Elle seans ekle</button></div>
     </div>
 
   </div>
@@ -362,6 +390,13 @@ html[data-theme="dark"] #toast{background:#2C3E34;color:var(--text)}
       <div class="chart" id="chart"></div>
       <div class="legend"><span><i style="background:var(--green)"></i>Çalışma</span><span><i style="background:var(--sand)"></i>Mola</span></div>
       <div class="note" id="bestNote"></div>
+    </div>
+
+    <div class="card" id="dayListCard" hidden>
+      <h2>O günün seansları</h2>
+      <div id="dayList"></div>
+      <div style="margin-top:12px"><button class="btn mini" id="addFromDay">+ Seans ekle</button></div>
+      <div class="note">Bir seansa dokunarak süresini, saatini veya dersini düzeltebilir, yanlış kaydı silebilirsin.</div>
     </div>
 
     <div class="card">
@@ -439,6 +474,28 @@ html[data-theme="dark"] #toast{background:#2C3E34;color:var(--text)}
     </div>
   </div>
 </section>
+
+<div class="modal" id="sessModal">
+  <div class="sheet">
+    <h3 id="sessTitle">Seans ekle</h3>
+    <div class="hint" id="sessHint">Zamanlayıcıyı çalıştırmayı unuttuysan süreyi elle gir.</div>
+    <div class="seg" id="sessKind" style="margin:12px 0 4px">
+      <button data-k="f" class="on">Çalışma</button>
+      <button data-k="b">Mola</button>
+    </div>
+    <div class="row"><div class="lbl">Tarih</div><input type="date" id="sessDate"></div>
+    <div class="row"><div class="lbl">Başlangıç saati</div><input type="time" id="sessTime"></div>
+    <div class="row"><div class="lbl">Süre <span class="sub" style="display:inline">dakika</span></div>
+      <input type="number" id="sessDur" min="1" max="600" step="5"></div>
+    <div class="row" id="sessSubjRow"><div class="lbl">Ders</div>
+      <select id="sessSubj"></select></div>
+    <div class="act">
+      <button class="btn" id="sessCancel">Vazgeç</button>
+      <button class="btn danger" id="sessDelete" hidden>Sil</button>
+      <button class="btn pri" id="sessSave">Kaydet</button>
+    </div>
+  </div>
+</div>
 
 <div id="toast" role="status" aria-live="polite"></div>
 
@@ -946,7 +1003,7 @@ function renderStats(){
   const now = new Date();
   if (period === 'day'){
     buckets = Array(24).fill(0).map(() => [0,0]);
-    labels = Array.from({length:24}, (_,i) => (i%3 === 0 ? pad(i) : ''));
+    labels = Array.from({length:24}, (_,i) => (i%6 === 0 ? pad(i) + ':00' : ''));
     list.forEach(x => { const h = new Date(sessionStart(x)).getHours(); buckets[h][x.k === 'f' ? 0 : 1] += x.d; });
     $('pAvgK').textContent = 'En yoğun saat';
     let bi = -1, bv = 0; buckets.forEach((v,i) => { if (v[0] > bv){ bv = v[0]; bi = i; } });
@@ -1020,6 +1077,7 @@ function renderStats(){
   }).join('') : '<div class="empty">Bu dönemde ders kaydı yok.</div>';
 
   renderHeat();
+  renderDayList();
 }
 
 function renderHeat(){
@@ -1046,6 +1104,127 @@ function renderHeat(){
     ? year + ' yılında ' + active + ' gün çalıştın, toplam ' + fmtHM(total) + '. Koyu kareler günlük hedefi tutturduğun günler.'
     : year + ' yılına ait kayıt yok.';
 }
+
+/* =========================================================
+   Elle seans ekleme ve düzeltme
+   ========================================================= */
+let editIdx = -1;       // -1 => yeni kayıt
+let timeTouched = false; // kullanıcı saati elle değiştirdi mi
+
+function localDateValue(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function setStart(d){
+  $('sessDate').value = localDateValue(d);
+  $('sessTime').value = pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+/* yeni kayıtta, kullanıcı saate dokunmadıysa seans "şimdi bitmiş" gibi konumlanır */
+function shiftStartToNow(){
+  if (editIdx >= 0 || timeTouched) return;
+  const dur = Math.max(1, Math.min(600, parseInt($('sessDur').value, 10) || 0));
+  setStart(new Date(Math.floor(Date.now()/60000)*60000 - dur*60000));
+}
+
+function openSess(idx){
+  editIdx = (typeof idx === 'number') ? idx : -1;
+  const isEdit = editIdx >= 0;
+  const x = isEdit ? S.sessions[editIdx] : null;
+  const start = isEdit ? new Date(sessionStart(x)) : new Date(Math.floor(Date.now()/60000)*60000);
+  if (!isEdit) start.setMinutes(start.getMinutes() - S.settings.focus);
+
+  $('sessTitle').textContent = isEdit ? 'Seansı düzelt' : 'Seans ekle';
+  $('sessHint').textContent = isEdit
+    ? 'Saati, süreyi veya dersi değiştirebilir, kaydı silebilirsin.'
+    : 'Zamanlayıcıyı çalıştırmayı unuttuysan süreyi elle gir.';
+  timeTouched = false;
+  setStart(start);
+  $('sessDate').max = localDateValue(new Date());
+  $('sessDur').value = isEdit ? Math.max(1, Math.round(x.d/60)) : S.settings.focus;
+  const kind = isEdit ? x.k : 'f';
+  document.querySelectorAll('#sessKind button').forEach(b => b.classList.toggle('on', b.dataset.k === kind));
+  $('sessSubj').innerHTML = S.subjects.map(sj =>
+    '<option value="' + sj.id + '">' + sj.icon + ' ' + sj.name + '</option>').join('');
+  $('sessSubj').value = (isEdit && x.s) ? x.s : (S.current || 's0');
+  $('sessSubjRow').hidden = kind === 'b';
+  $('sessDelete').hidden = !isEdit;
+  $('sessModal').classList.add('on');
+}
+function closeSess(){ $('sessModal').classList.remove('on'); editIdx = -1; }
+
+function saveSess(){
+  const kind = document.querySelector('#sessKind button.on').dataset.k;
+  const dur = Math.max(1, Math.min(600, parseInt($('sessDur').value, 10) || 0));
+  const dv = $('sessDate').value, tv = $('sessTime').value;
+  if (!dv || !tv){ toast('Tarih ve saat gerekli.'); return; }
+  const [Y,M,D] = dv.split('-').map(Number);
+  const [h,mi]  = tv.split(':').map(Number);
+  const startTs = new Date(Y, M-1, D, h, mi, 0, 0).getTime();
+  const endTs = startTs + dur*60000;
+  if (startTs > Date.now()){ toast('Başlangıç saati gelecekte olamaz.'); return; }
+  if (endTs > Date.now() + 60000){ toast('Bu süre şu anı aşıyor. Süreyi kısalt veya saati öne al.'); return; }
+
+  const rec = { t: endTs, d: dur*60, k: kind, s: kind === 'b' ? null : $('sessSubj').value, m: 'm' };
+  const wasEdit = editIdx >= 0;
+  if (wasEdit) S.sessions[editIdx] = rec; else S.sessions.push(rec);
+  S.sessions.sort((a,b) => a.t - b.t);
+  save(true);
+  closeSess(); render(); renderStats(); renderSettings();
+  toast((wasEdit ? 'Seans güncellendi: ' : 'Seans eklendi: ') +
+        fmtHM(dur*60) + ' · ' + (kind === 'b' ? 'mola' : subjectById(rec.s).name), 4500);
+}
+function deleteSess(){
+  if (editIdx < 0) return;
+  const x = S.sessions[editIdx];
+  if (!confirm(fmtHM(x.d) + ' süreli kayıt silinecek. Emin misin?')) return;
+  S.sessions.splice(editIdx, 1);
+  save(true); closeSess(); render(); renderStats(); renderSettings();
+  toast('Kayıt silindi.', 4000);
+}
+
+function renderDayList(){
+  const card = $('dayListCard');
+  card.hidden = period !== 'day';
+  if (card.hidden) return;
+  const [s0,e0] = periodRange();
+  const rows = S.sessions
+    .map((x,i) => ({ x, i, st: sessionStart(x) }))
+    .filter(r => r.st >= s0.getTime() && r.st < e0.getTime())
+    .sort((a,b) => a.st - b.st);
+  $('dayList').innerHTML = rows.length ? rows.map(r => {
+    const a = new Date(r.st), b = new Date(r.x.t);
+    const nm = r.x.k === 'b' ? '☕ Mola' : (subjectById(r.x.s).icon + ' ' + subjectById(r.x.s).name);
+    return '<div class="sess-row' + (r.x.k === 'b' ? ' brk' : '') + '" data-i="' + r.i + '">' +
+      '<span class="tm">' + pad(a.getHours()) + ':' + pad(a.getMinutes()) + ' – ' +
+        pad(b.getHours()) + ':' + pad(b.getMinutes()) + '</span>' +
+      '<span class="nm">' + nm + '</span>' +
+      (r.x.m === 'm' ? '<span class="mn">elle</span>' : '') +
+      '<span class="dr">' + fmtHM(r.x.d) + '</span></div>';
+  }).join('') : '<div class="empty">Bu güne ait kayıt yok.</div>';
+}
+
+$('addSessionBtn').onclick = () => openSess();
+$('addFromDay').onclick = () => {
+  const [s0] = periodRange();
+  openSess();
+  if (dayKey(s0) !== dayKey(Date.now())){
+    const d = new Date(s0); d.setHours(9, 0, 0, 0);
+    setStart(d); timeTouched = true;   // geçmiş gün: saat sabit kalsın
+  }
+};
+$('dayList').addEventListener('click', ev => {
+  const row = ev.target.closest('.sess-row'); if (!row) return;
+  openSess(+row.dataset.i);
+});
+$('sessKind').addEventListener('click', ev => {
+  const b = ev.target.closest('button'); if (!b) return;
+  document.querySelectorAll('#sessKind button').forEach(x => x.classList.toggle('on', x === b));
+  $('sessSubjRow').hidden = b.dataset.k === 'b';
+});
+$('sessTime').addEventListener('input', () => { timeTouched = true; });
+$('sessDate').addEventListener('input', () => { timeTouched = true; });
+$('sessDur').addEventListener('input', shiftStartToNow);
+$('sessCancel').onclick = closeSess;
+$('sessSave').onclick = saveSess;
+$('sessDelete').onclick = deleteSess;
+$('sessModal').addEventListener('click', ev => { if (ev.target === $('sessModal')) closeSess(); });
 
 /* =========================================================
    Arayüz — ayarlar

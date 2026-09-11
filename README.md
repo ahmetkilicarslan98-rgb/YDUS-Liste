@@ -18,6 +18,10 @@ veriyi yalnızca açtığın cihazın tarayıcısında (localStorage) saklar.
 - **Ders seçimi**: çalışma süresi seçtiğin derse yazılır, molalar derse yazılmaz.
   Ders listesi ayarlardan düzenlenir.
 - **Bugün**: toplam çalışma, toplam mola, seans sayısı, odak oranı ve günlük hedef çubuğu.
+- **Elle seans**: zamanlayıcı çalıştırılmadan geçen süre tarih, saat ve dakika girilerek
+  eklenir. İstatistik sekmesinin gün görünümündeki liste, o günün seanslarını sıralar;
+  bir seansa dokunarak süresi, saati veya dersi düzeltilir, yanlış kayıt silinir.
+  Elle girilen kayıtlar listede işaretlenir. Gelecek zamanlı kayıt kabul edilmez.
 - **İstatistik**: gün, hafta, ay, yıl görünümleri, saat/gün/ay kırılımlı grafik,
   ders dağılımı, yıllık ısı haritası, en verimli gün, hedefi tutturulan gün sayısı.
 - **Seri (streak)**: en az 10 dakika çalışılan ardışık günler. Gün bitmeden seri bozulmaz.
