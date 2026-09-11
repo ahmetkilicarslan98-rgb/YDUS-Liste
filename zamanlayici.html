@@ -458,7 +458,7 @@ html[data-theme="dark"] .sbj-edit.dragging{box-shadow:0 6px 20px rgba(0,0,0,.45)
         <button class="btn mini" id="notifBtn">İzin ver</button></div>
       <div class="row"><div><div class="lbl">Ekranı açık tut</div><div class="sub">Sayaç çalışırken ekran kapanmaz</div></div>
         <label class="switch"><input type="checkbox" id="setWake"><span class="slider"></span></label></div>
-      <div class="note">Telefon kilitlendiğinde tarayıcı sayacı askıya alabilir, bu durumda uyarı süre bitiminde
+      <div class="note" id="lockNote">Telefon kilitlendiğinde tarayıcı sayacı askıya alabilir, bu durumda uyarı süre bitiminde
         değil uygulamayı açtığında gelir. Süre yine doğru hesaplanır ve kaydedilir. Kilitliyken de çalan gerçek
         bir alarm ancak native uygulamayla mümkün.</div>
     </div>
@@ -487,7 +487,7 @@ html[data-theme="dark"] .sbj-edit.dragging{box-shadow:0 6px 20px rgba(0,0,0,.45)
       <div class="row"><div><div class="lbl">Yedekten yükle</div><div class="sub">JSON dosyası seç</div></div>
         <button class="btn mini" id="importBtn">Yükle</button><input type="file" id="importFile" accept="application/json,.json" style="display:none"></div>
       <div class="row"><div><div class="lbl">Tüm kayıtları sil</div><div class="sub">Geri alınamaz</div></div><button class="btn mini danger" id="wipeBtn">Sil</button></div>
-      <div class="note">Veriler yalnızca bu telefonun tarayıcısında saklanır (localStorage). Telefon değiştirirken yedek al.</div>
+      <div class="note" id="dataNote">Veriler yalnızca bu telefonun tarayıcısında saklanır (localStorage). Telefon değiştirirken yedek al.</div>
     </div>
   </div>
 </section>
@@ -553,10 +553,29 @@ function freshState(){
   };
 }
 
+/* =========================================================
+   Native kabuk köprüsü (iOS / Mac uygulaması)
+   Tarayıcıda NATIVE null olur ve her şey eskisi gibi çalışır.
+   ========================================================= */
+const NATIVE = (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.native) || null;
+const IS_NATIVE = !!NATIVE;
+let nativeNotify = null;   // null: bilinmiyor, true/false: izin durumu
+function native(action, extra){
+  if (!NATIVE) return false;
+  try { NATIVE.postMessage(Object.assign({ action: action }, extra || {})); return true; }
+  catch(e){ return false; }
+}
+window.__nativeNotify = function(granted){
+  nativeNotify = !!granted;
+  if (typeof renderSettings === 'function') renderSettings();
+};
+window.__nativeReady = function(){ native('ready'); };
+
 let S = load();
 function load(){
   try {
-    const raw = localStorage.getItem(LS_KEY);
+    let raw = localStorage.getItem(LS_KEY);
+    if (!raw && typeof window.__nativeBackup === 'string') raw = window.__nativeBackup;
     if (!raw) return freshState();
     const p = JSON.parse(raw);
     const base = freshState();
@@ -579,10 +598,15 @@ function migrateSubjects(st){
   });
 }
 let saveTimer = null;
+function writeState(){
+  const json = JSON.stringify(S);
+  try { localStorage.setItem(LS_KEY, json); } catch(e){}
+  native('persist', { json: json });
+}
 function save(now){
-  if (now) { localStorage.setItem(LS_KEY, JSON.stringify(S)); return; }
+  if (now) { writeState(); return; }
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => localStorage.setItem(LS_KEY, JSON.stringify(S)), 300);
+  saveTimer = setTimeout(writeState, 300);
 }
 
 /* ---------- yardımcılar ---------- */
@@ -647,6 +671,23 @@ function phaseLabel(){
   return t.phase === 'focus' ? 'Odak' : (t.phase === 'short' ? 'Kısa Mola' : 'Uzun Mola');
 }
 
+/* native kabukta faz bitişi işletim sistemine alarm olarak kaydedilir;
+   uygulama kapalıyken de çalar. Tarayıcıda bu çağrılar sessizce yok sayılır. */
+function syncAlarm(){
+  if (!IS_NATIVE) return;
+  const t = S.timer;
+  if (t.mode === 'pomo' && t.running){
+    const brk = isBreakNow();
+    native('scheduleAlarm', {
+      ms: Math.max(1000, phaseMs() - elapsedMs()),
+      title: brk ? 'Mola bitti' : 'Odak süresi doldu',
+      body: brk ? 'Yeni odak turu hazır.' : 'Sıra molada.'
+    });
+  } else {
+    native('cancelAlarm');
+  }
+}
+
 function startTimer(){
   const t = S.timer;
   if (t.running) return;
@@ -654,7 +695,7 @@ function startTimer(){
   t.segStart = Date.now();
   unlockAudio();
   requestWake();
-  save(true); render();
+  save(true); syncAlarm(); render();
 }
 function pauseTimer(){
   const t = S.timer;
@@ -662,7 +703,7 @@ function pauseTimer(){
   t.accum += Date.now() - t.segStart;
   t.running = false; t.segStart = null;
   releaseWake();
-  save(true); render();
+  save(true); syncAlarm(); render();
 }
 function logSegment(endTs){
   const t = S.timer;
@@ -700,7 +741,7 @@ function completePhase(auto){
   } else {
     S.timer.running = false; S.timer.segStart = null; releaseWake();
   }
-  save(true); render(); renderStats();
+  save(true); syncAlarm(); render(); renderStats();
 }
 function skipPhase(){
   const t = S.timer;
@@ -708,20 +749,20 @@ function skipPhase(){
   logSegment();
   advancePhase();
   t.running = false; t.segStart = null; t.accum = 0;
-  releaseWake(); save(true); render(); renderStats();
+  releaseWake(); save(true); syncAlarm(); render(); renderStats();
 }
 function finishChrono(){
   logSegment();
   const t = S.timer;
   t.running = false; t.segStart = null; t.accum = 0;
-  releaseWake(); save(true); render(); renderStats();
+  releaseWake(); save(true); syncAlarm(); render(); renderStats();
 }
 function resetTimer(){
   const t = S.timer;
   if (elapsedMs() >= 10000 && !confirm('Bu seansta geçen süre kaydedilmeden silinecek. Emin misin?')) return;
   const mode = t.mode, ctype = t.ctype;
   S.timer = freshTimer(mode); S.timer.ctype = ctype;
-  releaseWake(); save(true); render();
+  releaseWake(); save(true); syncAlarm(); render();
 }
 
 function tick(){
@@ -814,7 +855,11 @@ function beep(){
 }
 function alertUser(title, body){
   beep();
-  if (S.settings.vibrate && navigator.vibrate) { try { navigator.vibrate([220,120,220]); } catch(e){} }
+  if (S.settings.vibrate){
+    native('haptic');
+    if (navigator.vibrate){ try { navigator.vibrate([220,120,220]); } catch(e){} }
+  }
+  if (IS_NATIVE) return;   // alarmı native taraf gösterir
   if (typeof Notification !== 'undefined' && Notification.permission === 'granted'){
     const opts = { body, icon:'./icon-192.png', badge:'./icon-192.png', tag:'ydus-timer', renotify:true };
     if (navigator.serviceWorker && navigator.serviceWorker.ready){
@@ -825,11 +870,16 @@ function alertUser(title, body){
   }
 }
 async function requestWake(){
-  if (!S.settings.wake || !('wakeLock' in navigator) || wakeLock) return;
+  if (!S.settings.wake) return;
+  native('keepAwake', { on: true });
+  if (!('wakeLock' in navigator) || wakeLock) return;
   try { wakeLock = await navigator.wakeLock.request('screen');
         wakeLock.addEventListener('release', () => { wakeLock = null; }); } catch(e){}
 }
-function releaseWake(){ if (wakeLock){ try { wakeLock.release(); } catch(e){} wakeLock = null; } }
+function releaseWake(){
+  native('keepAwake', { on: false });
+  if (wakeLock){ try { wakeLock.release(); } catch(e){} wakeLock = null; }
+}
 
 /* =========================================================
    Arayüz — zamanlayıcı
@@ -947,7 +997,7 @@ function setDuration(key, v){
   if (isNaN(v)) return S.settings[key];
   S.settings[key] = Math.max(Math.max(lo, minAllowed(key)), Math.min(hi, Math.round(v)));
   if (key === 'rounds' && S.timer.round > S.settings.rounds) S.timer.round = S.settings.rounds;
-  save(true); render(); renderSettings(); renderStats();
+  save(true); syncAlarm(); render(); renderSettings(); renderStats();
   return S.settings[key];
 }
 
@@ -1276,7 +1326,18 @@ function renderSettings(){
   $('setAuto').checked = st.auto; $('setSound').checked = st.sound;
   $('setVibrate').checked = st.vibrate; $('setWake').checked = st.wake;
 
-  if (typeof Notification === 'undefined'){
+  if (IS_NATIVE){
+    $('lockNote').textContent = 'Süre bitişi işletim sistemine alarm olarak kaydedilir. Uygulama kapalıyken ' +
+      've telefon kilitliyken de çalar.';
+    $('dataNote').textContent = 'Veriler uygulamanın kendi klasöründe saklanır, ayrıca her değişiklikte ikinci ' +
+      'bir kopya dosyaya yazılır. Cihaz yedeğine dahildir. Yine de cihaz değiştirirken yedek al.';
+    $('notifSub').textContent = nativeNotify === true
+      ? 'Alarm açık, süre bitiminde çalar.'
+      : (nativeNotify === false ? 'İzin verilmedi. Sistem ayarlarından bildirime izin vermen gerekiyor.'
+                                : 'Alarmın çalması için bildirim izni gerekiyor.');
+    $('notifBtn').textContent = nativeNotify === true ? 'Açık' : 'İzin ver';
+    $('notifBtn').disabled = nativeNotify === true;
+  } else if (typeof Notification === 'undefined'){
     $('notifBtn').textContent = 'Desteklenmiyor'; $('notifBtn').disabled = true;
   } else if (Notification.permission === 'granted'){
     $('notifBtn').textContent = 'Açık'; $('notifBtn').disabled = true;
@@ -1406,7 +1467,10 @@ $('subjectEditor').addEventListener('pointerdown', ev => {
   try { grip.setPointerCapture(ev.pointerId); } catch(e){}
   row.classList.add('dragging');
   rows.forEach(r => { if (r !== row) r.classList.add('shift'); });
-  if (S.settings.vibrate && navigator.vibrate){ try { navigator.vibrate(12); } catch(e){} }
+  if (S.settings.vibrate){
+    native('haptic');
+    if (navigator.vibrate){ try { navigator.vibrate(12); } catch(e){} }
+  }
   window.addEventListener('pointermove', dragMove, { passive:false });
   window.addEventListener('pointerup', dragUp);
   window.addEventListener('pointercancel', dragCancel);
@@ -1459,6 +1523,7 @@ $('addSubject').onclick = () => {
   });
 });
 $('notifBtn').onclick = () => {
+  if (IS_NATIVE){ native('requestNotify'); return; }
   if (typeof Notification === 'undefined') return;
   Notification.requestPermission().then(() => renderSettings());
 };
@@ -1527,7 +1592,7 @@ $('modeSeg').addEventListener('click', ev => {
   if (elapsedMs() >= 10000 && !confirm('Süren kaydedilmeden mod değişecek. Devam?')) return;
   const ctype = S.timer.ctype;
   S.timer = freshTimer(m); S.timer.ctype = ctype;
-  releaseWake(); save(true); render();
+  releaseWake(); save(true); syncAlarm(); render();
 });
 $('chronoSeg').addEventListener('click', ev => {
   const b = ev.target.closest('button'); if (!b) return;
@@ -1582,6 +1647,7 @@ if (window.matchMedia){
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible'){
     reconcile();
+    syncAlarm();
     if (S.timer.running) requestWake();
     render(); if ($('view-stats').classList.contains('on')) renderStats();
     flushToast();

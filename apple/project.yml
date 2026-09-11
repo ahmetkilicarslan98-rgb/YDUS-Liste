@@ -1,0 +1,70 @@
+name: CalismaZamani
+options:
+  bundleIdPrefix: com.ahmetkilicarslan
+  deploymentTarget:
+    iOS: "16.0"
+    macOS: "13.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+settings:
+  base:
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.9"
+    DEVELOPMENT_TEAM: ""          # Xcode'da Signing & Capabilities'ten seç
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+
+# Web tarafı: depo kökündeki dosyalar uygulamanın içine gömülür.
+# Tek kaynak dosya, kopya yok; zamanlayici.html değişince iki uygulama da değişir.
+targetTemplates:
+  AppBase:
+    type: application
+    sources:
+      - path: Sources
+      - path: Resources/Assets.xcassets
+        buildPhase: resources
+      - path: ../zamanlayici.html
+        buildPhase: resources
+      - path: ../manifest.webmanifest
+        buildPhase: resources
+      - path: ../icon.svg
+        buildPhase: resources
+      - path: ../icon-192.png
+        buildPhase: resources
+      - path: ../icon-512.png
+        buildPhase: resources
+      - path: ../apple-touch-icon.png
+        buildPhase: resources
+      - path: ../favicon-64.png
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_NAME: "Çalışma Zamanı"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_KEY_CFBundleDisplayName: "Çalışma Zamanı"
+        INFOPLIST_KEY_NSHumanReadableCopyright: ""
+        GENERATE_INFOPLIST_FILE: YES
+
+targets:
+  CalismaZamani-iOS:
+    templates: [AppBase]
+    platform: iOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ahmetkilicarslan.calismazamani
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleDefault
+        TARGETED_DEVICE_FAMILY: "1,2"
+
+  CalismaZamani-macOS:
+    templates: [AppBase]
+    platform: macOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ahmetkilicarslan.calismazamani.mac
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_ENTITLEMENTS: Resources/mac.entitlements

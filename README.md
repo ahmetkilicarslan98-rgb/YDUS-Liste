@@ -7,6 +7,7 @@ veriyi yalnızca açtığın cihazın tarayıcısında (localStorage) saklar.
 |---|---|
 | `calisma_listesi.html` | Ders/kitap bazlı çalışma adımı takip listesi |
 | `zamanlayici.html` | **Çalışma Zamanı**: Pomodoro + kronometre, gün içi süre takibi ve istatistikler |
+| `apple/` | Aynı uygulamanın iOS ve Mac sürümü için Xcode projesi ([kurulum](apple/README.md)) |
 
 ## Çalışma Zamanı
 
@@ -60,6 +61,17 @@ ve maskable 512). iOS ikonu bir kez önbelleğe alır: ikon değişirse ana ekra
 silip yeniden eklemek gerekir.
 
 Kurulumdan sonra uygulama tam ekran açılır ve internet olmadan da çalışır.
+
+## iOS ve Mac uygulaması
+
+`apple/` klasöründe, aynı HTML'i native bir kabuk içinde çalıştıran bir Xcode projesi var.
+Kabuk yalnızca işletim sistemine bağlı işleri üstlenir: faz bitişinde uygulama kapalıyken
+de çalan gerçek alarm, verinin ikinci bir dosya kopyası, ekranı açık tutma ve dokunsal
+geri bildirim. Kurulum adımları ve ücretsiz Apple kimliğinin sınırları `apple/README.md`
+dosyasında.
+
+Web tarafı kabuğu kendiliğinden tanır; tarayıcıda köprü yoksa davranış değişmez.
+Yani tek bir `zamanlayici.html` hem web hem iOS hem Mac sürümünü besler.
 
 ## Notlar
 
