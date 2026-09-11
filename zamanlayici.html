@@ -544,7 +544,7 @@ const SUBJECT_MIGRATIONS = [
 function freshState(){
   return {
     v: 1,
-    settings: { focus:25, short:5, long:15, rounds:4, auto:true, goal:240,
+    settings: { focus:50, short:15, long:30, rounds:3, auto:true, goal:240,
                 sound:true, vibrate:true, wake:true, theme:'auto' },
     subjects: DEFAULT_SUBJECTS.map((s,i) => ({ id:'s'+i, name:s[0], icon:s[1], hidden:false })),
     current: 's0',
@@ -977,7 +977,7 @@ function render(){
 const LIMITS = { focus:[1,180], short:[1,60], long:[1,120], rounds:[1,12], goal:[10,900] };
 const PRESETS = [
   { f:25, s:5,  l:15, r:4 },
-  { f:50, s:10, l:20, r:3 },
+  { f:50, s:15, l:30, r:3 },
   { f:90, s:20, l:30, r:2 }
 ];
 let tuneOpen = false;

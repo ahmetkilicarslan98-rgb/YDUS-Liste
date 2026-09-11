@@ -12,8 +12,8 @@ veriyi yalnızca açtığın cihazın tarayıcısında (localStorage) saklar.
 ## Çalışma Zamanı
 
 - **Pomodoro**: odak, kısa mola ve uzun mola süreleri hem zamanlayıcı ekranındaki
-  +/- düğmelerinden hem de Ayarlar sekmesinden değiştirilir. 25/5, 50/10 ve 90/20 hazır
-  kalıpları tek dokunuşla uygulanır, uzun mola aralığı seçilir, süre bitince otomatik
+  +/- düğmelerinden hem de Ayarlar sekmesinden değiştirilir. Varsayılan 50 dakika çalışma
+  ve 15 dakika moladır. 25/5, 50/15 ve 90/20 hazır kalıpları tek dokunuşla uygulanır, uzun mola aralığı seçilir, süre bitince otomatik
   geçiş açılabilir. İşleyen bir faz, üzerinden geçen sürenin altına çekilemez.
 - **Kronometre**: açık uçlu çalışma veya mola ölçümü.
 - **Ders seçimi**: çalışma süresi seçtiğin derse yazılır, molalar derse yazılmaz.
