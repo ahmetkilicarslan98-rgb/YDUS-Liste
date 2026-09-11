@@ -514,7 +514,14 @@ const DEFAULT_SUBJECTS = [
   ['Genel','📘'],['Kardiyoloji','❤️'],['Göğüs Hastalıkları','🫁'],['Hematoloji','🩸'],
   ['Nefroloji','🫘'],['Gastroenteroloji','🔵'],['Hepatoloji','🟤'],['Tıbbi Onkoloji','🔬'],
   ['Endokrinoloji','⚗️'],['Temel İmmünoloji','🛡️'],['Klinik İmmünoloji','🧬'],['Alerji','🌿'],
-  ['Enfeksiyon Hastalıkları','🦠'],['Romatoloji','🦴'],['Geriatri','👴'],['Yoğun Bakım','🏥']
+  ['Enfeksiyon Hastalıkları','🦠'],['Romatoloji','🦴'],['Geriatri','👴'],['Yoğun Bakım','🏥'],
+  ['Tez','🎓'],['Araştırma','🔎']
+];
+
+/* Sonradan eklenen hazır dersler. Kurulu cihazlara bir kez eklenir;
+   kullanıcı sonradan silerse geri gelmez. */
+const SUBJECT_MIGRATIONS = [
+  { key:'subj-tez-arastirma', add:[['s16','Tez','🎓'],['s17','Araştırma','🔎']] }
 ];
 
 function freshState(){
@@ -536,8 +543,23 @@ function load(){
     if (!raw) return freshState();
     const p = JSON.parse(raw);
     const base = freshState();
-    return { ...base, ...p, settings:{ ...base.settings, ...(p.settings||{}) } };
+    const st = { ...base, ...p, settings:{ ...base.settings, ...(p.settings||{}) } };
+    if (!Array.isArray(st.subjects) || !st.subjects.length) st.subjects = base.subjects;
+    migrateSubjects(st);
+    return st;
   } catch(e){ return freshState(); }
+}
+function migrateSubjects(st){
+  st.mig = Array.isArray(st.mig) ? st.mig : [];
+  const norm = x => (x||'').toLocaleLowerCase('tr').trim();
+  SUBJECT_MIGRATIONS.forEach(m => {
+    if (st.mig.includes(m.key)) return;
+    m.add.forEach(([id,name,icon]) => {
+      const var_ = st.subjects.some(x => x.id === id || norm(x.name) === norm(name));
+      if (!var_) st.subjects.push({ id, name, icon, hidden:false });
+    });
+    st.mig.push(m.key);
+  });
 }
 let saveTimer = null;
 function save(now){
