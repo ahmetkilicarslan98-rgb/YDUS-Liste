@@ -38,6 +38,11 @@ En kolay yol GitHub Pages:
 3. **Android / Chrome**: menü → "Uygulamayı yükle" veya "Ana ekrana ekle".
    **iPhone / Safari**: paylaş simgesi → "Ana Ekrana Ekle".
 
+Ana ekran ikonu yeşil zemin üzerinde bej bir kum saatidir; kaynak çizim `icon.svg`
+dosyasında, PNG boyutları ondan üretilmiştir (iOS için 180/167/152, Android için 192/512
+ve maskable 512). iOS ikonu bir kez önbelleğe alır: ikon değişirse ana ekrandaki kısayolu
+silip yeniden eklemek gerekir.
+
 Kurulumdan sonra uygulama tam ekran açılır ve internet olmadan da çalışır.
 
 ## Notlar
