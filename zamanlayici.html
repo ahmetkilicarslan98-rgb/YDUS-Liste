@@ -32,6 +32,9 @@ html[data-theme="dark"]{
   --shadow:0 1px 3px rgba(0,0,0,.35), 0 8px 22px rgba(0,0,0,.28);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+/* hidden niteliği, sınıfın display kuralını yenmeli; yoksa .banner{display:flex}
+   gibi kurallar tarayıcının gizleme kuralını eziyor */
+[hidden]{display:none !important}
 body{
   font-family:'Segoe UI',system-ui,-apple-system,'Helvetica Neue',sans-serif;
   background:var(--bg); color:var(--text);
